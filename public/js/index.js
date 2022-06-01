@@ -8,10 +8,21 @@ fetch("/api/transaction")
   .then(data => {
     // save db data on global variable
     transactions = data;
+    //saveChartTransactions(transactions)
 
     populateTotal();
-    populateTable();
+    populateTable(); //history
+    populateChart(); //chart
+  })
+  .catch(err => {
+    console.log(err)
+    //saveChartTransactions(transactions)
     populateChart();
+    // fetch failed, so save in indexed db
+    // saveRecord(transaction);
+    // // clear form
+    // nameEl.value = "";
+    // amountEl.value = "";
   });
 
 function populateTotal() {
@@ -135,14 +146,70 @@ function sendTransaction(isAdding) {
     }
   })
   .catch(err => {
+    console.log(err)
     // fetch failed, so save in indexed db
     saveRecord(transaction);
-
     // clear form
     nameEl.value = "";
     amountEl.value = "";
   });
 }
+
+
+// indexDB upload transaction
+
+function uploadTransaction() {
+  // open a transaction on your db
+  const transaction = db.transaction(['new_transaction'], 'readwrite');
+
+  // access your object store
+  const budgetObjectStore = transaction.objectStore('new_transaction');
+
+  // get all records from store and set to a variable
+  // getAll() is an asynchronous function that we have to attach
+  // an event handler in order to retrieve the data
+  // once getAll() completed, it will have a .result property
+  // that's an array variable with all the data from new_transaction object store
+  const getAll = budgetObjectStore.getAll();
+
+
+  // upon a successful .getAll() execution, run this function
+  // Moongoose .create() can hangle a sinble object or an array of objects
+  // there is no need for another route
+  getAll.onsuccess = function() {
+    // if there was data in indexedDb's store, let's send it to the api server
+    if (getAll.result.length > 0) {
+      fetch('/api/transaction', {
+        method: 'POST',
+        body: JSON.stringify(getAll.result),
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(response => response.json())
+        .then(serverResponse => {
+          if (serverResponse.message) {
+            throw new Error(serverResponse);
+          }
+          // open one more transaction
+          const transaction = db.transaction(['new_transaction'], 'readwrite');
+          // access the new_transaction object store
+          const budgetObjectStore = transaction.objectStore('new_transaction');
+          // clear all items in your store
+          budgetObjectStore.clear();
+
+          alert('All saved transactions have been submitted!');
+          location.reload()
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    }
+  };
+}
+
+
 
 document.querySelector("#add-btn").onclick = function() {
   sendTransaction(true);

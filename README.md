@@ -1,4 +1,4 @@
-##Progressive Web Applications (PWA) Challenge: Budget Tracker
+## Progressive Web Applications (PWA) Challenge: Budget Tracker
 
 1. [ Description. ](#desc)
 2. [ Web Address. ](#web-address)
@@ -36,7 +36,7 @@ For more information - Please visit the following video on how the application w
 
 Website tutorial: 
 
-
+https://drive.google.com/file/d/1UNZCB6xA9VX7GMqZomo9B2ip5K48omYF/view
 
 If you want to run locally perform the following:
 
@@ -73,7 +73,9 @@ No test commands available, if you would like any, please let me know.
 <a name="contributing"></a>
 ## 9. Contributing
 
-Please email le
+
 
 <a name="questions"></a>
 ## 10. Questions
+
+Please email leigh.pfeiffer@gmail.com

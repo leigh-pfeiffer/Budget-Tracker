@@ -1,106 +1,104 @@
-// global variables constraints
-// testing also in pages
-const APP_PREFIX = 'BugetTracker-';     
-const VERSION = 'version_01';
-const CACHE_NAME = APP_PREFIX + VERSION;
-const DATA_CACHE_NAME = 'data-cache-v1';
-
-// files to cache
-//    "/index.html",
-
 const FILES_TO_CACHE = [
-    "/",
-    "/css/styles.css",
-    "/icons/icon-72x72.png",
-    "/js/idb.js",
-    "/js/index.js"
-  ];
+    '/',
+    '/index.html',
+    '/styles.css',
+    '/assets/icons/icon-192x192.png',
+    '/assets/icons/icon-512x512.png',
+    '/index.js',
+    '/indexedDB.js',
+    '/manifest.webmanifest',
+    'https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css',
+    'https://cdn.jsdelivr.net/npm/chart.js@2.8.0'
+];
 
-  // Cache resources
-self.addEventListener('install', function (e) {
+const PRECACHE = 'precache-v1';
+const RUNTIME = 'runtime';
 
-          // call back funciton waitUntil after
-      /*
-        We use e.waitUntil to tell the browser to wait
-        until the work is complete before terminating 
-        the service worker. This ensures that the service 
-        worker doesn't move on from the installing phase
-        until it's finished executing all of its code.
-        We use caches.open to find the specific cache by name, 
-        then add every file in the FILES_TO_CACHE array to the cache.
-      */
-    e.waitUntil(
-      caches.open(CACHE_NAME).then(function (cache) {
-        console.log('installing cache : ' + CACHE_NAME)
-        return cache.addAll(FILES_TO_CACHE)
-      })
-    )
-  })
+// self.addEventListener('install', (event) => {
+//     event.waitUntil(
+//         caches
+//             .open(PRECACHE)
+//             .then((cache) => cache.addAll(FILES_TO_CACHE))
+//             .then(self.skipWaiting())
+//     );
+// });
 
+// // The activate handler takes care of cleaning up old caches.
+// self.addEventListener('activate', (event) => {
+//     const currentCaches = [PRECACHE, RUNTIME];
+//     event.waitUntil(
+//         caches
+//             .keys()
+//             .then((cacheNames) => {
+//                 return cacheNames.filter((cacheName) => !currentCaches.includes(cacheName));
+//             })
+//             .then((cachesToDelete) => {
+//                 return Promise.all(
+//                     cachesToDelete.map((cacheToDelete) => {
+//                         return caches.delete(cacheToDelete);
+//                     })
+//                 );
+//             })
+//             .then(() => self.clients.claim())
+//     );
+// });
 
-// Delete outdated caches
-self.addEventListener('activate', function(e) {
-    e.waitUntil(
-      caches.keys().then(function(keyList) {
-        // `keyList` contains all cache names under your username.github.io
-        // filter out ones that has this app prefix to create keeplist
-        let cacheKeeplist = keyList.filter(function(key) {
-          return key.indexOf(APP_PREFIX);
-        });
-        // add current cache name to keeplist
-        cacheKeeplist.push(CACHE_NAME);
+// self.addEventListener('fetch', (event) => {
+//     if (event.request.url.startsWith(self.location.origin)) {
+//         event.respondWith(
+//             caches.match(event.request).then((cachedResponse) => {
+//                 if (cachedResponse) {
+//                     return cachedResponse;
+//                 }
+
+//                 return caches.open(RUNTIME).then((cache) => {
+//                     return fetch(event.request).then((response) => {
+//                         return cache.put(event.request, response.clone()).then(() => {
+//                             return response;
+//                         });
+//                     });
+//                 });
+//             })
+//         );
+//     }
+// });
+
+self.addEventListener('install', function(event) {
+    console.log('used to register the service worker');
+    event.waitUntil(
+        caches.open(PRECACHE)
+          .then(function(cache) {
+            return cache.addAll(FILES_TO_CACHE)
+          })
+          .then(self.skipWaiting())
+      )
+})
   
-        return Promise.all(
-          keyList.map(function(key, i) {
-            if (cacheKeeplist.indexOf(key) === -1) {
-              console.log('deleting cache : ' + keyList[i]);
-              return caches.delete(keyList[i]);
-            }
-          })
-        );
-      })
-    );
-  });
-
-
-// we need to retrieve information frm the cache 
-self.addEventListener('fetch', function (e) {
-    console.log('fetch request : ' + e.request.url)
-
-    // cache is not used to store data that eventually can lead to more than 500 mb.
-    // if (e.request.url.includes("/api/")) {
-    //   e.respondWith(
-    //     caches.open(DATA_CACHE_NAME).then(cache => {
-    //       return fetch(e.request)
-    //         .then(response => {
-    //           // If the response was good, clone it and store it in the cache.
-    //           if (response.status === 200) {
-    //             cache.put(e.request.url, response.clone());
-    //           }
-    //           return response;
-    //         })
-    //         .catch(err => {
-    //           // Network request failed, try to get it from the cache.
-    //           return cache.match(e.request);
-    //         });
-    //     }).catch(err => console.log(err))
-    //   );
-    //   //return;
-    // }
-
-    e.respondWith(
-        caches.match(e.request).then(function (request) {
-            if (request) {
-              console.log('responding with cache : ' + e.request.url)
-              return request
-            } else {
-                console.log('file is not cached, fetching : ' + e.request.url)
-                return fetch(e.request)
-            }
-            // You can omit if/else for console.log & put one line below like this too.
-            // return request || fetch(e.request)
+self.addEventListener('fetch', function(event) {
+    console.log('used to intercept requests so we can check for the file or data in the cache');
+    event.respondWith(
+        fetch(event.request)
+          .catch(() => {
+            return caches.open(PRECACHE)
+              .then((cache) => {
+                return cache.match(event.request)
+              })
           })
     )
-
-    
-  })
+})
+  
+self.addEventListener('activate', function(event) {
+    console.log('this event triggers when the service worker activates');
+    event.waitUntil(
+        caches.keys()
+          .then((keyList) => {
+            return Promise.all(keyList.map((key) => {
+              if (key !== PRECACHE) {
+                console.log('[ServiceWorker] Removing old cache', key)
+                return caches.delete(key)
+              }
+            }))
+          })
+          .then(() => self.clients.claim())
+    )
+})
